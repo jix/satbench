@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+from satbench.script import *
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-f", "--foreground", action="store_true")
+args = parser.parse_args()
+
+start_args = ["-t", "30", "-m", str(90 * 1024)]
+
+if args.foreground:
+    start_args.append("-f")
+
+cmd("benchrunner", "start", *start_args).run()

@@ -1,0 +1,6 @@
+[submodule "tools/cnfpack"]
+	path = tools/cnfpack
+	url = https://github.com/jix/cnfpack
+[submodule "tools/benchrunner"]
+	path = tools/benchrunner
+	url = https://github.com/jix/cnfpack

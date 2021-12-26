@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+import venv
+import os
+import subprocess
+import argparse
+from pathlib import Path
+
+
+steps = ["venv", "pip", "cargo"]
+
+parser = argparse.ArgumentParser()
+for step in steps:
+    parser.add_argument(f"--no-{step}", action="store_true")
+    parser.add_argument(f"--only-{step}", action="store_true")
+args = parser.parse_args()
+
+default = not any(getattr(args, f"only_{step}") for step in steps)
+for step in steps:
+    setattr(
+        args,
+        f"do_{step}",
+        (default or getattr(args, f"only_{step}")) and not getattr(args, f"no_{step}"),
+    )
+
+root = Path(__file__).parent.parent
+
+os.chdir(root)
+
+(root / "env").mkdir(exist_ok=True)
+
+cachedir_tag = root / "env/CACHEDIR.TAG"
+
+if not cachedir_tag.exists():
+    signature = (
+        "Signature: 8a477f597d28d172789f06886806bc55\n"
+        "# This file is a cache directory tag created by satbench setup/setup.\n"
+        "# For information about cache directory tags see https://bford.info/cachedir/\n"
+    )
+    with open(cachedir_tag, "w") as file:
+        file.write(signature)
+
+if args.do_venv:
+    print("Setting up python environment in `env`")
+    venv.create(root / "env", with_pip=True, upgrade_deps=True)
+
+if args.do_pip:
+    print("Installing python dependencies into `env`")
+    subprocess.check_call(
+        [root / "env/bin/pip", "install", "-r", root / "setup/requirements.txt"]
+    )
+
+if args.do_cargo:
+    print("Building rust binaries")
+    subprocess.check_call(["cargo", "build", "--workspace", "--release"])
+
+    print("Installing rust bianries into `env/bin`")
+    for tool in ["rmcat", "cnfpack", "benchrunner"]:
+        try:
+            os.symlink(root / "target/release" / tool, root / "env/bin" / tool)
+        except FileExistsError:
+            pass

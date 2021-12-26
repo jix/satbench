@@ -1,0 +1,2 @@
+[workspace]
+members = ["tools/rmcat", "tools/cnfpack", "tools/benchrunner"]

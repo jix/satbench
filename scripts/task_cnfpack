@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+from satbench.script import *
+
+parser = argparse.ArgumentParser()
+parser.add_argument("input")
+parser.add_argument("collection", nargs="*")
+args = parser.parse_args()
+
+os.makedirs(root / "blobs/cnf", exist_ok=True)
+os.makedirs(root / "data/cnf", exist_ok=True)
+
+tmp_output = root / f"blobs/cnf/tmp.{task_id}.cnfpack"
+
+if cleanup_task:
+    try:
+        os.unlink(tmp_output)
+    except FileNotFoundError:
+        pass
+    sys.exit(0)
+
+cmd("bsdcat").stdin_path(args.input).pipe(
+    cmd("cnfpack", "-n").stdout_path("/tmp/in.cnf")
+).run()
+
+cnf_hash = cmd("b3sum", "--no-names", "/tmp/in.cnf").read().strip()
+
+output = root / f"blobs/cnf/{cnf_hash}.cnfpack"
+
+if not output.exists():
+    cmd("rmcat", "/tmp/in.cnf").pipe(cmd("cnfpack", "-", tmp_output)).run()
+    os.rename(tmp_output, output)
+
+name = re.sub(r"\.cnf(\.[a-z0-9]+)?$", "", Path(args.input).name)
+
+flock.append_json(
+    root / "data/cnf/filenames.ndjson",
+    hash=cnf_hash,
+    name=name,
+    collections=args.collection,
+)
